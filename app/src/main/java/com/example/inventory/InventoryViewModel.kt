@@ -1,14 +1,17 @@
 package com.example.inventory
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.*
 import com.example.inventory.data.Item
 import com.example.inventory.data.ItemDao
 import kotlinx.coroutines.launch
-import java.lang.IllegalArgumentException
 
-class InventoryViewModel(private val itemDao: ItemDao): ViewModel() {
+class InventoryViewModel(private val itemDao: ItemDao) : ViewModel() {
+
+    val allItems: LiveData<List<Item>> = itemDao.getItems().asLiveData()
+
+    fun retrieveItem(id: Int): LiveData<Item> {
+        return itemDao.getItemId(id)
+    }
 
     fun addNewItem(itemName: String, itemPrice: String, itemCount: String) {
         val newItem = getNewItemEntry(itemName, itemPrice, itemCount)
@@ -20,6 +23,53 @@ class InventoryViewModel(private val itemDao: ItemDao): ViewModel() {
             return false
         }
         return true
+    }
+
+    fun sellItem(item: Item) {
+        if (item.quantityInStock > 0) {
+            val newItem = item.copy(quantityInStock = item.quantityInStock - 1)
+            updateItem(newItem)
+        }
+    }
+
+    fun isStockAvailable(item: Item): Boolean {
+        return (item.quantityInStock > 0)
+    }
+
+    fun deleteItem(item: Item) {
+        viewModelScope.launch {
+            itemDao.delete(item)
+        }
+    }
+
+    fun updateItem(
+        itemId: Int,
+        itemName: String,
+        itemPrice: String,
+        itemCount: String
+    ) {
+        val updatedItem = getUpdatedItemEntry(itemId, itemName, itemCount, itemPrice)
+        updateItem(updatedItem)
+    }
+
+    private fun updateItem(item: Item) {
+        viewModelScope.launch {
+            itemDao.update(item)
+        }
+    }
+
+    private fun getUpdatedItemEntry(
+        itemId: Int,
+        itemName: String,
+        itemCount: String,
+        itemPrice: String
+    ): Item {
+        return Item(
+            itemId,
+            itemName,
+            itemPrice.toDouble(),
+            itemCount.toInt()
+        )
     }
 
     private fun insertItem(item: Item) {
@@ -41,7 +91,7 @@ class InventoryViewModel(private val itemDao: ItemDao): ViewModel() {
     }
 }
 
-class InventoryViewModelFactory(private val itemDao: ItemDao): ViewModelProvider.Factory {
+class InventoryViewModelFactory(private val itemDao: ItemDao) : ViewModelProvider.Factory {
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(InventoryViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")

@@ -1,5 +1,6 @@
 package com.example.inventory.data
 
+import androidx.lifecycle.LiveData
 import androidx.room.*
 import androidx.room.OnConflictStrategy.IGNORE
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +18,7 @@ interface ItemDao {
     suspend fun delete(item: Item)
 
     @Query("SELECT * FROM item WHERE id = :id")
-    fun getItemId(id: Int): Flow<Item>
+    fun getItemId(id: Int): LiveData<Item>
 
     @Query("SELECT * FROM item ORDER BY name ASC")
     fun getItems(): Flow<List<Item>>
